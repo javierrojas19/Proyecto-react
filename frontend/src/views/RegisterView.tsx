@@ -1,9 +1,16 @@
 import { Link } from "react-router-dom";
 import { useForm } from "react-hook-form";
+import  axios, {isAxiosError} from "axios";
+import type { RegisterForm } from "../types";
+import {toast} from 'sonner'
 import ErrorMessage from "../components/errorMessage";
+import api from "../config/axios";
+
 
 export default function RegisterView() {
-  const InitialValues = {
+
+  
+  const InitialValues: RegisterForm = {
     name: "",
     email: "",
     handle: "",
@@ -11,17 +18,29 @@ export default function RegisterView() {
     password_confirmation: "",
   };
 
-
   const {
     register,
     watch,
+    reset,
     handleSubmit,
     formState: { errors },
   } = useForm({ defaultValues: InitialValues });
-  const handleRegister = () => {
-    console.log("desde el handleRegister");
+  const handleRegister = async (formData: RegisterForm) => {
+    try {
+      console.log('Datos a enviar:', formData);
+      const {data} = await api.post(`/auth/register`, formData)
+     
+     toast.success(data)
+      reset()
+    }catch (error) {
+      if (axios.isAxiosError(error)) {
+        toast.error('Error del servidor:', error.response?.data);
+      } else {
+        console.log(error);
+      }
+    }
   };
-  const password = watch('password')
+  const password = watch("password");
   return (
     <>
       <h1 className="text-4xl text-white font-bold">Crear Cuenta</h1>
@@ -57,7 +76,7 @@ export default function RegisterView() {
               required: "tu email es obligatorio",
               pattern: {
                 value: /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/,
-                message: "email no valido" // Expresión regular para validar el formato del email
+                message: "email no valido", // Expresión regular para validar el formato del email
               },
             })}
           />
@@ -92,7 +111,7 @@ export default function RegisterView() {
               minLength: {
                 value: 8,
                 message: "tu password debe tener al menos 8 caracteres",
-              }
+              },
             })}
           />
           {errors.password && (
@@ -114,7 +133,8 @@ export default function RegisterView() {
             className="bg-slate-100 border-none p-3 rounded-lg placeholder-slate-400"
             {...register("password_confirmation", {
               required: "tu password es obligatorio",
-              validate: (value)=> value === password || "las contraseñas deben ser iguales"
+              validate: (value) =>
+                value === password || "las contraseñas deben ser iguales",
             })}
           />
         </div>

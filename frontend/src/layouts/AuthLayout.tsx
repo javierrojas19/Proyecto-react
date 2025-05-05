@@ -1,4 +1,5 @@
 import React from "react";
+import {Toaster} from 'sonner'
 import { Outlet } from "react-router-dom";
 
 export default function AuthLayout() {
@@ -13,6 +14,8 @@ export default function AuthLayout() {
           </div>
         </div>
       </div>
+    <Toaster position="top-right"/>
+
     </>
   );
 }
