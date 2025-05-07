@@ -2,7 +2,9 @@
 import User from "../models/User";
 import { validationResult } from 'express-validator';
 import slug from "slug";
+import jwt from 'jsonwebtoken';
 import { checkPassword, hashPassword } from "../utils/auth";
+import { generateJWT } from "../utils/jwt";
 
 // Función para crear una cuenta de usuario
 export const createAcount = async (req, res) => {
@@ -46,9 +48,11 @@ export const createAcount = async (req, res) => {
 
 
 export const login = async (req,res) =>{
+
+  console.log("Datos recibidos en login:", req.body);
   let errors = validationResult(req);
-  if (errors.isEmpty()) {
-    // Si hay errores, devolvemos un estado 400 con los detalles
+  
+  if (!errors.isEmpty()) {
     return res.status(400).json({ errors: errors.array() });
   }
   const { email, password } = req.body;
@@ -62,11 +66,60 @@ export const login = async (req,res) =>{
   console.log("Si existe")
 
   //comprobar el password
+  
+  const fechaI = new Date().toLocaleString("es-CL", {
+    timeZone: "America/Santiago",
+    hour12: false, 
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
 
- 
+  })
 const isPasswordCorrect= await checkPassword(password,user.password)
   if(!isPasswordCorrect){
     const error = new Error("Password incorrecto")
     return res.status(401).json({error : error.message})
   }
+
+  const token = generateJWT({id: user._id})
+  
+  res.send(token)
+
+  // res.send(`Bienvenido sr/sra: ${user.name} '. ingreso a las ${fechaI} ` )
 }
+
+
+export const getUser = async(req , res ) => {
+  const bearer = req.headers.authorization;
+
+  if(!bearer){
+    const error = new Error('no autorizacion')
+    return res.status(401).json({error: error.message})
+  }
+
+  const [ , token] = bearer.split(' ')
+  if(!token){
+    const error = new Error('no autorizacion')
+    return res.status(401).json({error: error.message})
+  }
+ 
+  try {
+    const result = jwt.verify(token,process.env.JWT_SECRET)
+    if(typeof result === 'object'  && result.id){
+      const user = await User.findById(result.id).select('-password')
+      if(!user){
+        const error = new Error('Usuario no existe')
+        return res.status(404).json({error: error.message})
+      }
+
+      res.json(user)
+
+    }
+    
+    console.log(result)
+  } catch (error) {
+    res.status(500).json ({error: 'token no valido'})
+  }
+
+}
+
